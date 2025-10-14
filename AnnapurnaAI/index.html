@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annapurna AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <video autoplay muted loop id="bgVideo">
+            <source src="Indian_Cuisine_Background_Video_Generation.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <div class="login-card">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-primary login-logo-animation inline-block">Annapurna AI</h1>
+                <p style="font-size: 50px;">🍽️</p>
+            </div>
+            <div class="welcome-text">
+                <h2>Welcome Back</h2>
+                <p>Sign in to continue</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <div class="input-group">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" id="loginEmail" class="form-control" placeholder="Email / Student ID"
+                            required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="input-group">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="Password" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword()">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="login-buttons">
+                    <button type="button" class="btn btn-student" onclick="login('student')">Sign In as Student</button>
+                    <button type="button" class="btn btn-manager" onclick="login('manager')">Sign In as Manager</button>
+                </div>
+                <a href="#" class="forgot-password">Forgot Password?</a>
+            </form>
+        </div>
+    </div>
+
+    <!-- Student Dashboard -->
+    <div id="studentDashboard" class="dashboard hidden">
+        <!-- Header -->
+         <video autoplay muted loop id="studentBgVideo">
+            <source src="Modern_University_Mess_Hall_AR_Video.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div class="greeting">
+                    <h2>Good Morning, <span id="studentName">Priya</span>!</h2>
+                </div>
+                <div class="header-actions">
+                    <button class="notification-btn" onclick="showNotifications()">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <div class="profile-icon" onclick="showStudentProfile()">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Student Home View -->
+            <div id="studentHome" class="view active">
+                <!-- Today's Meals Card -->
+                <div class="card meals-card">
+                    <br>
+                    <div class="card-header">
+                        <h3 style="margin-left: 20px;">Today's Meals</h3>
+                        <span style="margin-right: 20px;" class="date">Wednesday, Sep 10, 2025</span>
+                    </div>
+                    <br>
+                    <div style="margin-left: 20px; margin-right: 20px;"class="card-body">
+                        <div class="meal-section" id="breakfast">
+                            <div class="meal-info">
+                                <h4>Breakfast</h4>
+                                <p class="dish-name">Poha with Tea</p>
+                            </div>
+                            <div class="meal-status">
+                                <span class="status-badge attending">Attending</span>
+                                <button class="skip-btn" onclick="toggleMealStatus('breakfast')">Skip</button>
+                            </div>
+                        </div>
+                        <div class="meal-section" id="lunch">
+                            <div class="meal-info">
+                                <h4>Lunch</h4>
+                                <p class="dish-name">Paneer Butter Masala</p>
+                            </div>
+                            <div class="meal-status">
+                                <span class="status-badge attending">Attending</span>
+                                <button class="skip-btn" onclick="toggleMealStatus('lunch')">Skip</button>
+                            </div>
+                        </div>
+                        <div class="meal-section" id="dinner">
+                            <div class="meal-info">
+                                <h4>Dinner</h4>
+                                <p class="dish-name">Dal Makhani with Rice</p>
+                            </div>
+                            <div class="meal-status">
+                                <span class="status-badge skipped">Skipped</span>
+                                <button class="skip-btn" onclick="toggleMealStatus('dinner')">Attend</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <br>
+                <!-- AI Weekly Menu Card -->
+                <div class="card">
+                    <br>
+                    <div class="card-header">
+                        <h3 style="margin-left: 20px;">AI-Powered Weekly Menu</h3>
+                    </div>
+                    <br>
+                    <div style="margin-left: 20px; margin-right: 20px;" class="card-body">
+                        <div class="week-days">
+                            <div class="day-card active" onclick="showDayMenu('monday')">
+                                <span>Mon</span>
+                            </div>
+                            <div class="day-card" onclick="showDayMenu('tuesday')">
+                                <span>Tue</span>
+                            </div>
+                            <div class="day-card" onclick="showDayMenu('wednesday')">
+                                <span>Wed</span>
+                            </div>
+                            <div class="day-card" onclick="showDayMenu('thursday')">
+                                <span>Thu</span>
+                            </div>
+                            <div class="day-card" onclick="showDayMenu('friday')">
+                                <span>Fri</span>
+                            </div>
+                        </div>
+                        <div class="day-menu" id="dayMenu">
+                            <div class="menu-item">
+                                <span>Breakfast: Poha with Tea</span>
+                            </div>
+                            <div class="menu-item">
+                                <span>Lunch: Paneer Butter Masala</span>
+                                <span class="ai-badge"
+                                    title="This dish was chosen based on an average 4.5-star rating from students!">AI
+                                    Choice</span>
+                            </div>
+                            <div class="menu-item">
+                                <span>Dinner: Dal Makhani with Rice</span>
+                            </div>
+                        </div>
+                        <button class="btn btn--secondary" onclick="showMonthlyPlan()">View Monthly Plan</button>
+                    </div>
+                    <br>
+                </div>
+                <br>
+            </div>
+
+            <!-- Monthly Plan View -->
+            <div id="monthlyPlan" class="view">
+                <div class="view-header">
+                    <button class="back-btn" onclick="showView('studentHome')">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <h2>Monthly Meal Plan</h2>
+                    <button class="btn btn--primary" onclick="downloadMealPlan()">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                </div>
+                <div class="monthly-calendar">
+                    <div class="calendar-grid">
+                        <!-- Calendar will be populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="nutrition-info card">
+                    <div class="card-header">
+                        <h3>Nutritional Information</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="nutrition-grid">
+                            <div class="nutrition-item">
+                                <span class="label">Daily Calories</span>
+                                <span class="value">2200 kcal</span>
+                            </div>
+                            <div class="nutrition-item">
+                                <span class="label">Protein</span>
+                                <span class="value">85g</span>
+                            </div>
+                            <div class="nutrition-item">
+                                <span class="label">Carbs</span>
+                                <span class="value">320g</span>
+                            </div>
+                            <div class="nutrition-item">
+                                <span class="label">Fat</span>
+                                <span class="value">65g</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback View -->
+            <div id="feedbackView" class="view">
+                <div class="view-header">
+                    <h2 style="margin-left: 10px;">Rate Your Meals</h2>
+                </div>
+                <div class="feedback-list">
+                    <div class="feedback-item card">
+                        <div style="margin-left: 20px; margin-right: 20px;" class="card-body">
+                            <br>
+                            <h4>Breakfast - Poha with Tea</h4>
+                            <p class="meal-date">Today, 8:00 AM</p>
+                            <div class="rating-section">
+                                <div class="star-rating">
+                                    <i class="fas fa-star" data-rating="1"></i>
+                                    <i class="fas fa-star" data-rating="2"></i>
+                                    <i class="fas fa-star" data-rating="3"></i>
+                                    <i class="fas fa-star" data-rating="4"></i>
+                                    <i class="fas fa-star" data-rating="5"></i>
+                                </div>
+                            </div>
+                            <div class="feedback-tags">
+                                <span class="tag positive" onclick="toggleTag(this)">Loved it!</span>
+                                <span class="tag positive" onclick="toggleTag(this)">Perfectly Spiced</span>
+                                <span class="tag neutral" onclick="toggleTag(this)">It was okay</span>
+                                <span class="tag negative" onclick="toggleTag(this)">Too Oily</span>
+                            </div>
+                            <textarea class="form-control" placeholder="Additional Comments (Optional)"></textarea>
+                            <br>
+                            <button class="btn btn--primary" onclick="submitFeedback(this)">Submit Feedback</button>
+                        </div>
+                        <br>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rewards View -->
+            <div id="rewardsView" class="view">
+                <div class="view-header">
+                    <h2>Rewards</h2>
+                    <div class="points-display">
+                        <i class="fas fa-trophy"></i>
+                        <span id="totalPoints">250</span> Points
+                    </div>
+                </div>
+                <div class="rewards-grid">
+                    <div class="reward-card">
+                        <div class="reward-icon">☕</div>
+                        <h4>Free Coffee</h4>
+                        <p>Get a free coffee from the mess</p>
+                        <div class="reward-cost">100 Points</div>
+                        <button class="btn btn--primary" onclick="redeemReward('coffee', 100)">Redeem</button>
+                    </div>
+                    <div class="reward-card">
+                        <div class="reward-icon">🍽️</div>
+                        <h4>Extra Portion</h4>
+                        <p>Get an extra portion of your favorite dish</p>
+                        <div class="reward-cost">150 Points</div>
+                        <button class="btn btn--primary" onclick="redeemReward('portion', 150)">Redeem</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Profile View -->
+            <div id="studentProfile" class="view">
+                <div class="view-header">
+                    <button class="back-btn" onclick="showView('studentHome')">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <h2>Profile</h2>
+                </div>
+                <div class="profile-content">
+                    <div class="card">
+                        <div style="margin-left: 20px; margin-right: 20px;" class="card-body">
+                            <div class="profile-info">
+                                <div class="profile-avatar">
+                                    <i class="fas fa-user-circle"></i>
+                                </div>
+                                <h3 id="profileName">Priya Sharma</h3>
+                                <p id="profileEmail">priya@example.com</p>
+                                <p id="profileId">ST001</p>
+                            </div>
+                            <div class="profile-actions">
+                                <button class="btn btn--secondary" onclick="editProfile()">Edit Profile</button>
+                                <button class="btn btn--outline" onclick="logout()">Logout</button>
+                            </div>
+                            <br>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="showView('studentHome')">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </button>
+            <button class="nav-item" onclick="showView('feedbackView')">
+                <i class="fas fa-star"></i>
+                <span>Feedback</span>
+            </button>
+            <button class="nav-item" onclick="showView('rewardsView')">
+                <i class="fas fa-gift"></i>
+                <span>Rewards</span>
+            </button>
+            <button class="nav-item" onclick="showView('studentProfile')">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Manager Dashboard -->
+    <div id="managerDashboard" class="dashboard hidden">
+        <!-- Header -->
+         <video autoplay muted loop id="ManagerBgVideo">
+            <source src="AI_Data_To_Indian_Food_Animation.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <header class="dashboard-header manager-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <button class="home-btn" data-view-id="dashboard" onclick="showManagerView('dashboard')">
+                        <i class="fas fa-home"></i>
+                    </button>
+                    <h2>Annapurna AI</h2>
+                </div>
+                <div class="profile-section">
+                    <span>Rajesh Kumar</span>
+                    <button class="profile-dropdown" onclick="showManagerProfile()">
+                        <i class="fas fa-user-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar Navigation -->
+            <nav id="managerTopNav" class="manager-top-nav">
+            <button class="nav-item active" data-view-id="dashboard" onclick="showManagerView('dashboard')">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </button>
+            <button class="nav-item" data-view-id="prepSheet" onclick="showManagerView('prepSheet')">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Prep Sheet</span>
+            </button>
+            <button class="nav-item" data-view-id="inventory" onclick="showManagerView('inventory')">
+                <i class="fas fa-boxes"></i>
+                <span>Inventory</span>
+            </button>
+            <button class="nav-item" data-view-id="menuDesigner" onclick="showManagerView('menuDesigner')">
+                <i class="fas fa-utensils"></i>
+                <span>Menu Designer</span>
+            </button>
+            <button class="nav-item" data-view-id="feedbackAnalysis" onclick="showManagerView('feedbackAnalysis')">
+                <i class="fas fa-chart-bar"></i>
+                <span>Feedback Analysis</span>
+            </button>
+            <button class="nav-item" data-view-id="reports" onclick="showManagerView('reports')">
+                <i class="fas fa-file-alt"></i>
+                <span>Reports</span>
+            </button>
+            <button class="nav-item logout-btn" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="manager-main">
+            <!-- Dashboard View -->
+            <div id="managerDashboardView" class="view active">
+                <div class="dashboard-widgets">
+                    <!-- Top Row - Key Metrics -->
+                    <div class="widget-row">
+                        <div class="widget widget-large">
+                            <div class="widget-header">
+                                <h3>Next Meal: Lunch (1:00 PM)</h3>
+                            </div>
+                            <div class="widget-body">
+                                <div class="headcount-display">
+                                    <span class="headcount-number">1854</span>
+                                    <span class="headcount-total">out of 2200</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress" style="width: 84%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="widget">
+                            <div class="widget-header">
+                                <h3>Projected Monthly Savings</h3>
+                            </div>
+                            <div class="widget-body">
+                                <div class="metric-display">
+                                    <span class="metric-value">₹45,300</span>
+                                    <i class="fas fa-arrow-up metric-icon positive"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="widget">
+                            <div class="widget-header">
+                                <h3>Waste Reduction</h3>
+                            </div>
+                            <div class="widget-body">
+                                <div class="metric-display">
+                                    <span class="metric-value">18%</span>
+                                    <i class="fas fa-arrow-down metric-icon positive"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Second Row - Operational Insights -->
+                    <div class="widget-row">
+                        <div class="widget">
+                            <div class="widget-header">
+                                <h3>AI Prep Recommendation</h3>
+                            </div>
+                            <div class="widget-body">
+                                <div class="prep-items">
+                                    <div class="prep-item">Rice: 190kg</div>
+                                    <div class="prep-item">Dal: 110kg</div>
+                                    <div class="prep-item">Paneer: 85kg</div>
+                                </div>
+                                <button class="btn btn--primary" onclick="showManagerView('prepSheet')">View Full Prep
+                                    Sheet</button>
+                            </div>
+                        </div>
+                        <div class="widget">
+                            <div class="widget-header">
+                                <h3>Live Feedback Summary</h3>
+                            </div>
+                            <div class="widget-body">
+                                <div class="feedback-summary">
+                                    <div class="rating-display">
+                                        <span>Breakfast: 4.2 ⭐</span>
+                                    </div>
+                                    <div class="feedback-tags-summary">
+                                        <span class="tag positive">Loved it!</span>
+                                        <span class="tag negative">Too Oily</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="widget">
+                            <div class="widget-header">
+                                <h3>Inventory Alerts</h3>
+                            </div>
+                            <div class="widget-body">
+                                <div class="inventory-status">
+                                    <div class="alert-item warning">
+                                        <span>Low Stock: Onions (12kg remaining)</span>
+                                    </div>
+                                    <div class="alert-item success">
+                                        <span>All other stock OK</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart Widget -->
+                    <div class="widget-row">
+                        <div class="widget widget-full">
+                            <div class="widget-header">
+                                <h3>Daily Headcount vs. AI Forecast (Last 7 Days)</h3>
+                            </div>
+                            <div class="widget-body">
+                                <div class="chart-container" style="position: relative; height: 300px;">
+                                    <canvas id="headcountChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prep Sheet View -->
+            <div id="prepSheetView" class="view">
+                <div class="view-header">
+                    <h2>AI Production Plan for Lunch - Sep 10, 2025</h2>
+                    <div class="view-actions">
+                        <button class="btn btn--secondary" onclick="printPrepSheet()">
+                            <i class="fas fa-print"></i> Print Sheet
+                        </button>
+                        <button class="btn btn--primary" onclick="exportCSV()">
+                            <i class="fas fa-download"></i> Export CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="prep-table-container">
+                    <table class="prep-table">
+                        <thead>
+                            <tr>
+                                <th>Menu Item</th>
+                                <th>AI Recommended Quantity</th>
+                                <th>Required Raw Materials</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Paneer Butter Masala</td>
+                                <td>85 kg</td>
+                                <td>
+                                    <ul class="materials-list">
+                                        <li>Paneer: 60kg</li>
+                                        <li>Tomato Puree: 20L</li>
+                                        <li>Onions: 15kg</li>
+                                        <li>Butter: 8kg</li>
+                                    </ul>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Rice</td>
+                                <td>190 kg</td>
+                                <td>
+                                    <ul class="materials-list">
+                                        <li>Basmati Rice: 190kg</li>
+                                        <li>Salt: 2kg</li>
+                                    </ul>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Inventory View -->
+            <div id="inventoryView" class="view">
+                <div class="view-header">
+                    <h2>Inventory Management</h2>
+                    <button class="btn btn--primary" onclick="addInventoryItem()">
+                        <i class="fas fa-plus"></i> Add Item
+                    </button>
+                </div>
+                <div class="inventory-tabs">
+                    <button class="tab-btn active" onclick="showInventoryTab('current')">Current Stock</button>
+                    <button class="tab-btn" onclick="showInventoryTab('orders')">AI Purchase Orders</button>
+                </div>
+                <div class="inventory-table-container">
+                    <table class="inventory-table">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Current Stock</th>
+                                <th>Low Stock Threshold</th>
+                                <th>Spoilage Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Rice</td>
+                                <td>
+                                    <div class="stock-display">
+                                        <span>250 kg</span>
+                                        <div class="stock-bar">
+                                            <div class="stock-progress" style="width: 83%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>50 kg</td>
+                                <td>Dec 15, 2025</td>
+                                <td><span class="status--success">In Stock</span></td>
+                                <td>
+                                    <button class="btn btn--sm" onclick="editInventoryItem('rice')">Edit</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Onions</td>
+                                <td>
+                                    <div class="stock-display">
+                                        <span>12 kg</span>
+                                        <div class="stock-bar">
+                                            <div class="stock-progress warning" style="width: 20%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>20 kg</td>
+                                <td>Sep 20, 2025</td>
+                                <td><span class="status--warning">Low Stock</span></td>
+                                <td>
+                                    <button class="btn btn--sm" onclick="editInventoryItem('onions')">Edit</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Menu Designer View -->
+            <div id="menuDesignerView" class="view">
+                <div class="menu-designer-layout">
+                    <div class="menu-left">
+                        <br>
+                        <h3>AI-Suggested Weekly Menu</h3>
+                        </br>
+                        <div class="weekly-calendar">
+                            <div class="calendar-day">
+                                <h4>Monday</h4>
+                                <div class="meal-slot">
+                                    <span>Breakfast: Poha with Tea</span>
+                                    <i class="fas fa-info-circle" title="Chosen based on 4.6-star average rating"></i>
+                                </div>
+                                <div class="meal-slot">
+                                    <span>Lunch: Paneer Butter Masala</span>
+                                    <i class="fas fa-robot" title="AI recommendation based on popularity"></i>
+                                </div>
+                                <div class="meal-slot">
+                                    <span>Dinner: Dal Makhani</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn--primary btn--full-width" onclick="approveMenu()">Approve Weekly
+                            Menu</button>
+                    </div>
+                    <div class="menu-right">
+                        <h3>Deep Dive Analytics</h3>
+                        <div class="analytics-tabs">
+                            <button class="tab-btn active" onclick="showAnalyticsTab('feedback')">Feedback
+                                Trends</button>
+                            <button class="tab-btn" onclick="showAnalyticsTab('waste')">Waste Analysis</button>
+                            <button class="tab-btn" onclick="showAnalyticsTab('consumption')">Consumption Data</button>
+                        </div>
+                        <div class="chart-container" style="position: relative; height: 250px;">
+                            <canvas id="analyticsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Analysis View -->
+            <div id="feedbackAnalysisView" class="view">
+                <div class="view-header">
+                    <h2>Feedback Analysis</h2>
+                </div>
+                <div class="feedback-overview">
+                    <div class="card">
+                        <div style="margin-left: 20px;" class="card-header">
+                            <br>
+                            <h3>Overall Rating Trends</h3>
+                            </br>
+                        </div>
+                        <div style="margin-left: 20px; margin-right: 20px;" class="card-body">
+                            <div class="chart-container" style="position: relative; height: 200px;">
+                                <canvas id="ratingTrendsChart"></canvas>
+                            </div>
+                            <br>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="card">
+                        <div style="margin-left: 20px;"class="card-header">
+                            <br>
+                            <h3>Anonymous Student Feedback</h3>
+                            <br>
+                        </div>
+                        <div  style="margin-left: 20px; margin-right: 20px;" class="card-body">
+                            <div class="feedback-items">
+                                <div class="feedback-item">
+                                    <div class="rating">⭐⭐⭐⭐⭐</div>
+                                    <p>"Breakfast was excellent today. Loved the poha!"</p>
+                                    <small>2 hours ago</small>
+                                </div>
+                                <div class="feedback-item">
+                                    <div class="rating">⭐⭐⭐</div>
+                                    <p>"Lunch was okay, could use less oil."</p>
+                                    <small>3 hours ago</small>
+                                </div>
+                                <br>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports View -->
+            <div id="reportsView" class="view">
+                <div class="view-header">
+                    <h2>Reports & Notifications</h2>
+                </div>
+                <div class="reports-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <br>
+                            <h3 style="margin-left: 20px;" >Monthly Savings Report</h3>
+                            </br>
+                        </div>
+                        <div style="margin-left: 20px; margin-right: 20px;" class="card-body">
+                            <div class="savings-comparison">
+                                <div class="current-month">
+                                    <span class="label">This Month</span>
+                                    <span class="value">₹45,300</span>
+                                </div>
+                                <div class="previous-month">
+                                    <span class="label">Previous Month</span>
+                                    <span class="value">₹38,200</span>
+                                </div>
+                                <div class="improvement">
+                                    <span class="label">Improvement</span>
+                                    <span class="value positive">+18.6%</span>
+                                </div>
+                            </div>
+                            <br>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <br>
+                            <h3 style="margin-left: 20px;" >Real-time Notifications</h3>
+                            </br>
+                        </div>
+                        <div style="margin-left: 20px; margin-right: 20px;" class="card-body">
+                            <div class="notifications-list">
+                                <div class="notification-item">
+                                    <i class="fas fa-users"></i>
+                                    <span>Final headcount for lunch: 1854 students</span>
+                                    <small>5 min ago</small>
+                                </div>
+                                <div class="notification-item">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <span>Low stock alert: Onions (12kg remaining)</span>
+                                    <small>1 hour ago</small>
+                                </div>
+                            </div>
+                            <br>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="confirmModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Confirm Action</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage">Are you sure?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn--secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn--primary" id="confirmBtn" onclick="confirmAction()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notificationModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Notifications</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="notification-item">
+                    <i class="fas fa-utensils"></i>
+                    <span>Lunch menu updated for tomorrow</span>
+                    <small>2 hours ago</small>
+                </div>
+                <div class="notification-item">
+                    <i class="fas fa-star"></i>
+                    <span>You earned 20 points for yesterday's feedback!</span>
+                    <small>1 day ago</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
