@@ -5,7 +5,6 @@
 const API_BASE_URL = "http://127.0.0.1:8000/api/v1";
 
 // --- Application State ---
-// NOTE: These variables are used globally by the functions below.
 let currentUser = null; 
 let currentUserType = null; 
 let currentView = 'studentHome';
@@ -20,14 +19,7 @@ let weeklyMenuCache = {};
 let prepSheetData = []; // Cache for manager prep sheet data
 
 
-// --- FUNCTION DECLARATIONS ---
-// --- All functions must be defined before the initial DOMContentLoaded event fires ---
-
 // --- API Helper Function ---
-/**
- * A helper function to make authenticated API requests.
- * It automatically adds the JWT token to the header.
- */
 async function apiFetch(endpoint, options = {}) {
     const token = localStorage.getItem('access_token');
     const headers = {
@@ -64,291 +56,288 @@ async function apiFetch(endpoint, options = {}) {
 
 // --- Authentication Functions ---
 function togglePassword() {
-    const passwordInput = document.getElementById('loginPassword');
-    const toggleBtn = document.querySelector('.password-toggle i');
-    
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        toggleBtn.className = 'fas fa-eye-slash';
-    } else {
-        passwordInput.type = 'password';
-        toggleBtn.className = 'fas fa-eye';
-    }
+    const passwordInput = document.getElementById('loginPassword');
+    const toggleBtn = document.querySelector('.password-toggle i');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleBtn.className = 'fas fa-eye-slash';
+    } else {
+        passwordInput.type = 'password';
+        toggleBtn.className = 'fas fa-eye';
+    }
 }
 
 async function login(userType) {
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-    
-    if (!email || !password) {
-        showNotification('Please enter both email and password', 'error');
-        return;
-    }
-    
-    try {
-        // 1. Send login request
-        const response = await fetch(`${API_BASE_URL}/auth/login/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    if (!email || !password) {
+        showNotification('Please enter both email and password', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/login/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
 
-        const data = await response.json();
+        const data = await response.json();
 
-        if (!response.ok) {
-            // Error from backend (e.g., 401 Unauthorized)
-            throw new Error(data.detail || 'Login failed. Check email and password.');
-        }
-        
-        // 2. Login Successful: Save tokens and determine role
-        localStorage.setItem('access_token', data.access);
-        localStorage.setItem('refresh_token', data.refresh);
-        
-        const payload = JSON.parse(atob(data.access.split('.')[1]));
-        currentUserType = payload.role; // Assign to global var
+        if (!response.ok) {
+            throw new Error(data.detail || 'Login failed. Check email and password.');
+        }
+        
+        localStorage.setItem('access_token', data.access);
+        localStorage.setItem('refresh_token', data.refresh);
+        
+        const payload = JSON.parse(atob(data.access.split('.')[1]));
+        currentUserType = payload.role;
 
-        if (!currentUserType) {
-            throw new Error("User role could not be determined from token.");
-        }
-        
-        // Use data returned by custom serializer (if available) or fall back
-        currentUser = {
-            id: payload.user_id,
-            // The custom serializer should provide the email: data.email
-            email: data.email || payload.email || email, 
-            role: payload.role,
-            active: true, // Assuming if token is issued, user is active
-            name: data.name || payload.email || email // Use email as name fallback
-        };
+        if (!currentUserType) throw new Error("User role could not be determined from token.");
 
+        currentUser = {
+            id: payload.user_id,
+            email: data.email || payload.email || email, 
+            role: payload.role,
+            active: true,
+            name: data.name || payload.email || email
+        };
 
-        if (currentUserType === 'student') {
-            showPage('studentDashboard');
-            await showView('studentHome');
-            showNotification(`Welcome ${currentUser.email}!`, 'success');
-        } else if (currentUserType === 'manager') {
-            showPage('managerDashboard');
-            await showManagerView('dashboard');
-            setTimeout(() => initializeCharts(), 500);
-            showNotification(`Welcome ${currentUser.email}!`, 'success');
-        } else {
-            throw new Error('Unknown user role in token.');
-        }
-        
-    } catch (error) {
-        console.error('Login error:', error);
-        showNotification(error.message || "An unknown login error occurred", 'error');
-    }
+        if (currentUserType === 'student') {
+            showPage('studentDashboard');
+            await showView('studentHome');
+            showNotification(`Welcome ${currentUser.email}!`, 'success');
+        } else if (currentUserType === 'manager') {
+            showPage('managerDashboard');
+            await showManagerView('dashboard');
+            setTimeout(() => initializeCharts(), 500);
+            showNotification(`Welcome ${currentUser.email}!`, 'success');
+        } else {
+            throw new Error('Unknown user role in token.');
+        }
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        showNotification(error.message || "An unknown login error occurred", 'error');
+    }
 }
 
 function logout() {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    currentUser = null;
-    currentUserType = null;
-    todaysMenus = {};
-    mealStatuses = {};
-    feedbackPoints = 0;
-    
-    showPage('loginPage');
-    const form = document.getElementById('loginForm');
-    if (form) form.reset();
-    showNotification('You have been logged out', 'info');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    currentUser = null;
+    currentUserType = null;
+    todaysMenus = {};
+    mealStatuses = {};
+    feedbackPoints = 0;
+    
+    showPage('loginPage');
+    const form = document.getElementById('loginForm');
+    if (form) form.reset();
+    showNotification('You have been logged out', 'info');
 }
+
 
 // --- Page Navigation ---
 function showPage(pageId) {
-    document.querySelectorAll('.login-container, .dashboard').forEach(page => {
-        page.classList.add('hidden');
-    });
-    const targetPage = document.getElementById(pageId);
-    if (targetPage) {
-        targetPage.classList.remove('hidden');
-    } else {
-        console.error('Page not found:', pageId);
-    }
+    document.querySelectorAll('.login-container, .dashboard').forEach(page => {
+        page.classList.add('hidden');
+    });
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) {
+        targetPage.classList.remove('hidden');
+    } else {
+        console.error('Page not found:', pageId);
+    }
 }
 
-// --- Student Dashboard Functions (Backend Connected) ---
-async function updateStudentInfo() {
-    if (!currentUser) return;
+// ✅ --- New Function: showView (Fixes “showView is not defined”) ---
+function showView(viewId) {
+    document.querySelectorAll('#studentDashboard .view').forEach(view => {
+        view.classList.remove('active');
+    });
 
-    const studentNameEl = document.getElementById('studentName');
-    const profileNameEl = document.getElementById('profileName');
-    const profileEmailEl = document.getElementById('profileEmail');
-    const profileIdEl = document.getElementById('profileId');
-    const totalPointsEl = document.getElementById('totalPoints');
-    
-    if (studentNameEl) studentNameEl.textContent = currentUser.name || currentUser.email; 
-    if (profileNameEl) profileNameEl.textContent = currentUser.name || currentUser.email; 
-    if (profileEmailEl) profileEmailEl.textContent = currentUser.email;
-    if (profileIdEl) profileIdEl.textContent = `ID: ${currentUser.id}`; 
-    
-    // Mocking feedback points fetch for now
-    feedbackPoints = 250; 
-    if (totalPointsEl) totalPointsEl.textContent = feedbackPoints;
-    
-    await fetchStudentDashboardData(); 
+    const targetView = document.getElementById(viewId);
+    if (targetView) {
+        targetView.classList.add('active');
+    } else {
+        console.error(`View not found: ${viewId}`);
+    }
+
+    document.querySelectorAll('.bottom-nav .nav-item').forEach(btn => {
+        btn.classList.remove('active');
+        const onclick = btn.getAttribute('onclick');
+        if (onclick && onclick.includes(viewId)) {
+            btn.classList.add('active');
+        }
+    });
+
+    currentView = viewId;
+}
+
+
+// --- Student Dashboard ---
+async function updateStudentInfo() {
+    if (!currentUser) return;
+
+    const studentNameEl = document.getElementById('studentName');
+    const profileNameEl = document.getElementById('profileName');
+    const profileEmailEl = document.getElementById('profileEmail');
+    const profileIdEl = document.getElementById('profileId');
+    const totalPointsEl = document.getElementById('totalPoints');
+    
+    if (studentNameEl) studentNameEl.textContent = currentUser.name || currentUser.email; 
+    if (profileNameEl) profileNameEl.textContent = currentUser.name || currentUser.email; 
+    if (profileEmailEl) profileEmailEl.textContent = currentUser.email;
+    if (profileIdEl) profileIdEl.textContent = `ID: ${currentUser.id}`; 
+    
+    feedbackPoints = 250; 
+    if (totalPointsEl) totalPointsEl.textContent = feedbackPoints;
+    
+    await fetchStudentDashboardData(); 
 }
 
 async function fetchStudentDashboardData() {
-    console.log("Fetching student dashboard data (menus and attendance)...");
-    const today = new Date().toISOString().split('T')[0];
-    todaysMenus = {}; 
-    mealStatuses = {}; 
+    console.log("Fetching student dashboard data (menus and attendance)...");
+    const today = new Date().toISOString().split('T')[0];
+    todaysMenus = {}; 
+    mealStatuses = {}; 
 
-    try {
-        // 1. Fetch Today's Menus
-        const menuResponse = await apiFetch(`/menus/?meal_date=${today}`);
-        if (!menuResponse.ok) throw new Error("Failed to fetch today's menus.");
-        const menusToday = await menuResponse.json();
+    try {
+        const menuResponse = await apiFetch(`/menus/?meal_date=${today}`);
+        if (!menuResponse.ok) throw new Error("Failed to fetch today's menus.");
+        const menusToday = await menuResponse.json();
 
-        menusToday.forEach(menu => {
-            const mealTypeLower = menu.meal_type.toLowerCase();
-            if (!['breakfast', 'lunch', 'dinner'].includes(mealTypeLower)) return; 
+        menusToday.forEach(menu => {
+            const mealTypeLower = menu.meal_type.toLowerCase();
+            if (!['breakfast', 'lunch', 'dinner'].includes(mealTypeLower)) return; 
+            todaysMenus[mealTypeLower] = menu.id; 
 
-            todaysMenus[mealTypeLower] = menu.id; 
+            const mealSection = document.getElementById(mealTypeLower);
+            if (mealSection) {
+                const dishName = menu.items && menu.items.length > 0 ? menu.items[0].name : "Not Available";
+                const dishEl = mealSection.querySelector('.meal-name');
+                if (dishEl) dishEl.textContent = dishName;
+            }
+        });
 
-            const mealSection = document.getElementById(mealTypeLower);
-            if (mealSection) {
-                const dishName = menu.items && menu.items.length > 0 ? menu.items[0].name : "Not Available";
-                const dishEl = mealSection.querySelector('.meal-name');
-                if (dishEl) dishEl.textContent = dishName;
-            }
-        });
+        const attendanceResponse = await apiFetch(`/attendance/?menu__meal_date=${today}`); 
+        if (!attendanceResponse.ok) throw new Error("Failed to fetch attendance.");
+        const attendanceToday = await attendanceResponse.json();
 
-        // 2. Fetch Today's Attendance for the user
-        const attendanceResponse = await apiFetch(`/attendance/?menu__meal_date=${today}`); 
-        if (!attendanceResponse.ok) throw new Error("Failed to fetch attendance.");
-        const attendanceToday = await attendanceResponse.json();
+        ['breakfast', 'lunch', 'dinner'].forEach(mt => {
+            mealStatuses[mt] = { status: 'attending', attendance_id: null, menu_id: todaysMenus[mt] || null };
+        });
+       
+        attendanceToday.forEach(att => {
+            const mealType = Object.keys(todaysMenus).find(key => todaysMenus[key] === att.menu);
+            if (mealType && att.id !== undefined) {
+                mealStatuses[mealType] = { status: 'skipped', attendance_id: att.id, menu_id: att.menu };
+            }
+        });
 
-        // 3. Populate mealStatuses
-        ['breakfast', 'lunch', 'dinner'].forEach(mt => {
-            mealStatuses[mt] = { status: 'attending', attendance_id: null, menu_id: todaysMenus[mt] || null };
-        });
-       
-        attendanceToday.forEach(att => {
-            const mealType = Object.keys(todaysMenus).find(key => todaysMenus[key] === att.menu);
-            if (mealType && att.id !== undefined) {
-                mealStatuses[mealType] = { status: 'skipped', attendance_id: att.id, menu_id: att.menu };
-            }
-        });
+        updateMealDisplays(); 
 
-        updateMealDisplays(); 
-
-    } catch (error) {
-        console.error("Error fetching student dashboard data:", error);
-        showNotification(error.message || "Could not load dashboard data.", 'error');
-        // Set loading state on failure
-        ['breakfast', 'lunch', 'dinner'].forEach(mt => {
-            mealStatuses[mt] = { status: 'error', attendance_id: null, menu_id: null };
-        });
-        updateMealDisplays(); 
-    }
+    } catch (error) {
+        console.error("Error fetching student dashboard data:", error);
+        showNotification(error.message || "Could not load dashboard data.", 'error');
+        ['breakfast', 'lunch', 'dinner'].forEach(mt => {
+            mealStatuses[mt] = { status: 'error', attendance_id: null, menu_id: null };
+        });
+        updateMealDisplays(); 
+    }
 }
 
-async function toggleMealStatus(mealType) {
-    const mealInfo = mealStatuses[mealType];
-    if (!mealInfo || mealInfo.menu_id === null) { 
-        showNotification(`Menu information not available for ${mealType} today.`, "warning");
-        return;
-    }
 
-    const currentStatus = mealInfo.status;
-    const newStatus = currentStatus === 'attending' ? 'skipped' : 'attending';
-    const action = newStatus === 'skipped' ? 'skip' : 'attend';
-    const menuId = mealInfo.menu_id;
-    const attendanceId = mealInfo.attendance_id;
-    
-    showConfirmModal(
-        `Confirm ${action} meal`,
-        `Are you sure you want to ${action} ${mealType}?`,
-        async () => {
+// ✅ --- Updated Skip/Attend Button Function ---
+async function toggleMealStatus(mealType) {
+    const mealInfo = mealStatuses[mealType];
+    if (!mealInfo || mealInfo.menu_id === null) { 
+        showNotification(`Menu information not available for ${mealType} today.`, "warning");
+        return;
+    }
+
+    const currentStatus = mealInfo.status;
+    const newStatus = currentStatus === 'attending' ? 'skipped' : 'attending';
+    const action = newStatus === 'skipped' ? 'skip' : 'attend';
+    const menuId = mealInfo.menu_id;
+    const attendanceId = mealInfo.attendance_id;
+    
+    showConfirmModal(
+        `Confirm ${action} meal`,
+        `Are you sure you want to ${action} ${mealType}?`,
+        async () => {
             const originalStatus = { ...mealStatuses[mealType] };
 
-            try {
-                // Optimistic UI Update
+            try {
                 mealStatuses[mealType].status = newStatus; 
                 updateMealDisplays(); 
 
-                if (newStatus === 'skipped') {
-                    // POST to create an attendance record
-                    const response = await apiFetch(`/attendance/`, {
-                        method: 'POST',
-                        body: JSON.stringify({ menu: menuId })
-                    });
-                    if (!response.ok) {
-                         const errorData = await response.json();
-                          const errorMsg = errorData.non_field_errors ? errorData.non_field_errors.join(' ') : (errorData.detail || JSON.stringify(errorData));
-                         throw new Error(errorMsg);
-                    }
-                    const newAttendance = await response.json();
-                    // Update local state with the new attendance ID
-                    mealStatuses[mealType].attendance_id = newAttendance.id;
+                if (newStatus === 'skipped') {
+                    const response = await apiFetch(`/attendance/`, {
+                        method: 'POST',
+                        body: JSON.stringify({ menu: menuId })
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || JSON.stringify(errorData));
+                    }
+                    const newAttendance = await response.json();
+                    mealStatuses[mealType].attendance_id = newAttendance.id;
 
-                } else { // newStatus is 'attending'
-                    if (!attendanceId) throw new Error("No existing skip record found.");
-                    
-                    // DELETE to remove the attendance record
-                    const response = await apiFetch(`/attendance/${attendanceId}/`, {
-                        method: 'DELETE'
-                    });
-                    
-                    if (response.status !== 204) {
-                         // Try to get error details if available
-                         let errorData = { detail: `Request failed with status ${response.status}` };
-                         try { errorData = await response.json(); } catch(e){}
-                         throw new Error(JSON.stringify(errorData) || 'Failed to unattend meal.');
-                    }
-                    // Update local state: remove attendance ID
-                    mealStatuses[mealType].attendance_id = null;
-                }
+                } else {
+                    if (!attendanceId) throw new Error("No attendance record found.");
+                    const response = await apiFetch(`/attendance/${attendanceId}/`, {
+                        method: 'DELETE'
+                    });
+                    if (response.status !== 204) {
+                        let errorData = { detail: `Failed with status ${response.status}` };
+                        try { errorData = await response.json(); } catch(e){}
+                        throw new Error(errorData.detail || 'Failed to update attendance.');
+                    }
+                    mealStatuses[mealType].attendance_id = null;
+                }
 
-                // If API call was successful, show notification
-                showNotification(`${mealType.charAt(0).toUpperCase() + mealType.slice(1)} ${newStatus}!`, 'success');
+                await fetchStudentDashboardData();
+                showNotification(`${mealType.charAt(0).toUpperCase() + mealType.slice(1)} marked as ${newStatus}!`, 'success');
 
-            } catch (error) {
-                console.error('Toggle meal status API error:', error);
-                showNotification(`Failed to ${action} meal. ${error.message}`, 'error');
-                // --- Revert Optimistic UI Update on Failure ---
-                mealStatuses[mealType] = originalStatus;
-                updateMealDisplays();
-            }
-        }
-    );
+            } catch (error) {
+                console.error('Toggle meal status error:', error);
+                showNotification(`Failed to ${action} meal. ${error.message}`, 'error');
+                mealStatuses[mealType] = originalStatus;
+                updateMealDisplays();
+            }
+        }
+    );
 }
+
 
 function updateMealDisplays() {
-    ['breakfast', 'lunch', 'dinner'].forEach(mealType => { // Iterate explicitly
-        const mealSection = document.getElementById(mealType);
-        if (mealSection) {
-            const statusBadge = mealSection.querySelector('.status-badge');
-            const skipBtn = mealSection.querySelector('.skip-btn');
-            const statusInfo = mealStatuses[mealType]; // Get status object
-            let status = 'loading'; // Default if not loaded yet
-            
-            if (statusInfo) {
-                status = statusInfo.status; // 'attending' or 'skipped'
-            }
-            
-            mealSection.className = `meal-section ${status}`; // Add status class
-            if (statusBadge) {
-                statusBadge.className = `status-badge ${status}`;
-                statusBadge.textContent = status === 'attending' ? 'Attending' : status === 'skipped' ? 'Skipped' : '...'; // Show loading indicator
-            }
-            if (skipBtn) {
-                skipBtn.textContent = status === 'attending' ? 'Skip' : 'Attend';
-                skipBtn.disabled = status === 'loading' || status === 'error'; // Disable button while loading
-            }
-        } else {
-            console.warn(`Meal section not found for: ${mealType}`);
-        }
-    });
+    ['breakfast', 'lunch', 'dinner'].forEach(mealType => { 
+        const mealSection = document.getElementById(mealType);
+        if (mealSection) {
+            const statusBadge = mealSection.querySelector('.status-badge');
+            const skipBtn = mealSection.querySelector('.skip-btn');
+            const statusInfo = mealStatuses[mealType];
+            let status = 'loading';
+            
+            if (statusInfo) status = statusInfo.status;
+            
+            mealSection.className = `meal-section ${status}`;
+            if (statusBadge) {
+                statusBadge.className = `status-badge ${status}`;
+                statusBadge.textContent = status === 'attending' ? 'Attending' : status === 'skipped' ? 'Skipped' : '...';
+            }
+            if (skipBtn) {
+                skipBtn.textContent = status === 'attending' ? 'Skip' : 'Attend';
+                skipBtn.disabled = status === 'loading' || status === 'error';
+            }
+        }
+    });
 }
-
-// --- Menu Functions and Manager Views are omitted for brevity but remain connected ---
-
-
 
 function showDayMenu(day) {
     document.querySelectorAll('.day-card').forEach(card => {
