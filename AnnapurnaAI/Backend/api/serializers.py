@@ -1,6 +1,8 @@
 # api/serializers.py
 from rest_framework import serializers
 from .models import User, MenuItem, Menu, Attendance, Feedback
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import authenticate
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -51,3 +53,20 @@ class FeedbackSerializer(serializers.ModelSerializer):
         model = Feedback
         fields = ['id', 'user', 'item', 'rating', 'comments', 'timestamp']
         read_only_fields = ['timestamp']
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['role'] = user.role
+        token['email'] = user.email
+        return token
+
+def validate(self, attrs):
+        data = super().validate(attrs)
+        # Add role and email to the response data (login response)
+        data['role'] = self.user.role
+        data['email'] = self.user.email # <-- ADD THIS LINE
+        # If you add a 'name' field to your User model later, add it here too
+        # data['name'] = self.user.name
+        return data

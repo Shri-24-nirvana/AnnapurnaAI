@@ -3,7 +3,6 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
     TokenRefreshView,
 )
 
@@ -16,16 +15,14 @@ router.register(r'feedback', views.FeedbackViewSet, basename='feedback')
 
 # The API URLs are now determined automatically by the router.
 urlpatterns = [
-    # Main ViewSet router
     path('', include(router.urls)),
-    
-    # User Registration
     path('auth/register/', views.RegisterView.as_view(), name='auth_register'),
-    
-    # JWT Token Authentication
-    path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+
+    # --- CHANGE THIS LINE ---
+    # Use your custom view for login
+    path('auth/login/', views.MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    # --- END OF CHANGE ---
+
     path('auth/login/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    
-    # Manager Dashboard
     path('dashboard/summary/', views.dashboard_summary, name='dashboard_summary'),
 ]

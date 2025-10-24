@@ -7,6 +7,11 @@ from .serializers import UserSerializer, MenuItemSerializer, MenuSerializer, Att
 from .permissions import IsManagerUser
 from .services.prediction_service import get_ai_prediction # Mock AI
 import datetime
+from rest_framework_simplejwt.views import TokenObtainPairView # Import this
+from .serializers import ( # Import your new serializer
+    UserSerializer, MenuItemSerializer, MenuSerializer,
+    AttendanceSerializer, FeedbackSerializer, MyTokenObtainPairSerializer
+)
 
 # 1. User Registration View
 class RegisterView(generics.CreateAPIView):
@@ -60,6 +65,9 @@ class FeedbackViewSet(viewsets.ModelViewSet):
         if user.role == 'manager':
             return Feedback.objects.all()
         return Feedback.objects.filter(user=user)
+    
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
 
 # 3. The Manager Dashboard View
 @api_view(['GET'])
