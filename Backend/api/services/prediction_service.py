@@ -20,3 +20,4 @@ def get_ai_prediction(menu_id: int, live_skips: int, total_students: int):
         "confidence_score": round(random.uniform(0.85, 0.98), 2),
         "prep_sheet": prep_sheet
     }
+    
