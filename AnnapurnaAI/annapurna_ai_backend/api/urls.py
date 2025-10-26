@@ -6,6 +6,7 @@ from .views import (
     DashboardSummaryView,
     MenuListView,
     AttendanceListView,
+    FeedbackView,
     AttendanceDeleteView
 )
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -28,7 +29,8 @@ urlpatterns = [
     path('menus/', MenuListView.as_view(), name='menu-list'),
     path('attendance/', AttendanceListView.as_view(), name='attendance-list'),
     path('attendance/<int:pk>/', AttendanceDeleteView.as_view(), name='attendance-delete'),
-    
+    path('feedback/', FeedbackView.as_view(), name='feedback'),
+
     # Manager Features
     path('dashboard/', DashboardSummaryView.as_view(), name='dashboard'),
 ]

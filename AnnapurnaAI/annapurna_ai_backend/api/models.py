@@ -41,9 +41,15 @@ class Attendance(models.Model):
         unique_together = ('student', 'menu')
 
 
+from django.conf import settings
+
 class Feedback(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE)
-    menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
+    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    menu_item = models.ForeignKey('MenuItem', on_delete=models.CASCADE)
     rating = models.IntegerField()
-    comments = models.TextField(blank=True, null=True)
-    timestamp = models.DateTimeField(auto_now_add=True)
+    comments = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.student.email} on {self.menu_item.name}: {self.rating}"
+

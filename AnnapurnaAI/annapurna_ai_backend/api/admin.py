@@ -30,7 +30,7 @@ class AttendanceAdmin(admin.ModelAdmin):
 
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):
-    list_display = ['id', 'student', 'menu_item', 'rating', 'timestamp']
-    list_filter = ['rating', 'timestamp']
+    list_display = ['id', 'student', 'menu_item', 'rating', 'created_at']
+    list_filter = ['rating', 'created_at']
     search_fields = ['student__email', 'comments']
-    ordering = ['-timestamp']
+    ordering = ['created_at']

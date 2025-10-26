@@ -72,69 +72,62 @@ class SubmitFeedbackView(APIView):
         
         return Response({"message": "Feedback submitted successfully."}, status=status.HTTP_201_CREATED)
 
+from datetime import datetime, time
+
 class DashboardSummaryView(APIView):
     permission_classes = [IsAuthenticated, IsManager]
-    
+
     def get(self, request, *args, **kwargs):
-        today = datetime.date.today()
-        next_meal_type = 'Lunch'
+        now = datetime.now().time()
+
+        # Define mealtime intervals
+        if time(5, 0) <= now < time(11, 0):
+            next_meal_type = 'Breakfast'
+        elif time(11, 0) <= now < time(16, 0):
+            next_meal_type = 'Lunch'
+        else:
+            next_meal_type = 'Dinner'
+
+        today = datetime.today().date()
         
         menu = Menu.objects.filter(meal_date=today, meal_type=next_meal_type).first()
-        
         if not menu:
-            return Response({"error": "No upcoming meal found for today."}, status=status.HTTP_404_NOT_FOUND)
-        
+            return Response({"error": f"No upcoming {next_meal_type} meal found for today."},
+                            status=status.HTTP_404_NOT_FOUND)
+
         total_students = User.objects.filter(role='student').count()
         skipped_students = Attendance.objects.filter(menu=menu).count()
         live_headcount = total_students - skipped_students
-        
+
         ai_forecast = get_ai_prediction(
-            meal_date=today, 
-            meal_type=next_meal_type, 
-            total_students=total_students, 
+            meal_date=today,
+            meal_type=next_meal_type,
+            total_students=total_students,
             live_skips=skipped_students
         )
         
         cost_per_meal = 50
         projected_savings = (total_students - ai_forecast['predicted_headcount']) * cost_per_meal
-        
+
         summary = {
             "meal_details": {
-                "date": today.strftime('%Y-%m-%d'), 
+                "date": today.strftime('%Y-%m-%d'),
                 "type": next_meal_type
-            }, 
+            },
             "live_data": {
-                "total_students": total_students, 
-                "skipped_students": skipped_students, 
+                "total_students": total_students,
+                "skipped_students": skipped_students,
                 "live_headcount": live_headcount
-            }, 
-            "ai_predictions": ai_forecast, 
+            },
+            "ai_predictions": ai_forecast,
             "financials": {
-                "projected_daily_savings": projected_savings, 
+                "projected_daily_savings": projected_savings,
                 "currency": "INR"
             }
         }
-        
+
         return Response(summary, status=status.HTTP_200_OK)
 
-# ✅ NEW: Menu List View
-class MenuListView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request, *args, **kwargs):
-        meal_date = request.query_params.get('meal_date')
-        
-        if meal_date:
-            try:
-                date_obj = datetime.datetime.strptime(meal_date, '%Y-%m-%d').date()
-                menus = Menu.objects.filter(meal_date=date_obj)
-            except ValueError:
-                return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            menus = Menu.objects.all()
-        
-        serializer = MenuSerializer(menus, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 # ✅ NEW: Attendance List View
 class AttendanceListView(APIView):
@@ -170,3 +163,17 @@ class AttendanceDeleteView(APIView):
                 {"error": "Attendance record not found or you don't have permission to delete it."}, 
                 status=status.HTTP_404_NOT_FOUND
             )
+
+from rest_framework import permissions
+from .serializers import FeedbackSerializer
+
+class FeedbackView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data['student'] = request.user.id
+        serializer = FeedbackSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

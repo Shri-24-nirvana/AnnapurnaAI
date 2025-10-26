@@ -53,8 +53,10 @@ class AttendanceSerializer(serializers.ModelSerializer):
         fields = ['id', 'student', 'menu', 'status', 'timestamp']
         read_only_fields = ['student', 'timestamp']
 
+
 class FeedbackSerializer(serializers.ModelSerializer):
     class Meta:
         model = Feedback
-        fields = ['id', 'student', 'menu_item', 'rating', 'comments', 'timestamp']
-        read_only_fields = ['student', 'timestamp']
+        fields = '__all__'
+        read_only_fields = ['student', 'created_at']
+
