@@ -2,7 +2,7 @@
 // This version connects all major buttons to the Django backend for data storage.
 
 // --- API Configuration ---
-const API_BASE_URL = "http://127.0.0.1:8000/api/v1";
+const API_BASE_URL = "http://127.0.0.1:8000/api"; // ✅ FIXED: Removed /v1
 
 // --- Application State ---
 let currentUser = null; 
@@ -10,18 +10,24 @@ let currentUserType = null;
 let currentView = 'studentHome';
 let currentManagerView = 'dashboard';
 let pendingAction = null;
-let todaysMenus = {}; // { breakfast: menu_id, lunch: menu_id }
-let mealStatuses = {}; // { breakfast: { status: 'attending', attendance_id: null }, ... }
+let todaysMenus = {}; 
+let mealStatuses = {}; 
 let feedbackPoints = 0; 
 let selectedRating = 0;
 let selectedTags = [];
 let weeklyMenuCache = {}; 
-let prepSheetData = []; // Cache for manager prep sheet data
-
+let prepSheetData = [];
 
 // --- API Helper Function ---
 async function apiFetch(endpoint, options = {}) {
     const token = localStorage.getItem('access_token');
+    
+    console.log(`API Call: ${endpoint}`, {
+        method: options.method || 'GET',
+        hasToken: !!token,
+        tokenPreview: token ? token.substring(0, 20) + '...' : 'none'
+    });
+    
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -37,21 +43,35 @@ async function apiFetch(endpoint, options = {}) {
             headers: headers,
         });
 
+        console.log(`API Response: ${endpoint}`, {
+            status: response.status,
+            statusText: response.statusText
+        });
+
         if (response.status === 401) {
+            console.error('401 Unauthorized - Token expired or invalid');
             showNotification('Session expired. Please log in again.', 'error');
             logout();
             throw new Error('Unauthorized');
         }
+        
+        // Don't treat 204 as error
+        if (response.status === 204) {
+            console.log('204 No Content - Success');
+            return response;
+        }
+        
         return response;
 
     } catch (error) {
         console.error(`API Fetch Error (${endpoint}):`, error);
         if (!error.message.includes('Unauthorized')) {
-             showNotification('Network error or server unavailable. Please check backend.', 'error');
+             showNotification('Network error or server unavailable.', 'error');
         }
         throw error; 
     }
 }
+
 
 
 // --- Authentication Functions ---
@@ -78,7 +98,7 @@ async function login(userType) {
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/login/`, {
+        const response = await fetch(`${API_BASE_URL}/login/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -93,6 +113,12 @@ async function login(userType) {
         localStorage.setItem('access_token', data.access);
         localStorage.setItem('refresh_token', data.refresh);
         
+        // ✅ Add this debug log
+        console.log('Tokens saved:', {
+            access_preview: data.access.substring(0, 30) + '...',
+            access_stored: localStorage.getItem('access_token') ? 'Yes' : 'No'
+        });
+        
         const payload = JSON.parse(atob(data.access.split('.')[1]));
         currentUserType = payload.role;
 
@@ -103,18 +129,19 @@ async function login(userType) {
             email: data.email || payload.email || email, 
             role: payload.role,
             active: true,
-            name: data.name || payload.email || email
+            name: data.name || payload.name || payload.email.split('@')[0]
         };
 
         if (currentUserType === 'student') {
             showPage('studentDashboard');
-            await showView('studentHome');
-            showNotification(`Welcome ${currentUser.email}!`, 'success');
+            await updateStudentInfo();
+            showView('studentHome');
+            showNotification(`Welcome ${currentUser.name}!`, 'success');
         } else if (currentUserType === 'manager') {
             showPage('managerDashboard');
             await showManagerView('dashboard');
             setTimeout(() => initializeCharts(), 500);
-            showNotification(`Welcome ${currentUser.email}!`, 'success');
+            showNotification(`Welcome ${currentUser.name}!`, 'success');
         } else {
             throw new Error('Unknown user role in token.');
         }
@@ -124,6 +151,8 @@ async function login(userType) {
         showNotification(error.message || "An unknown login error occurred", 'error');
     }
 }
+
+
 
 function logout() {
     localStorage.removeItem('access_token');
@@ -140,7 +169,6 @@ function logout() {
     showNotification('You have been logged out', 'info');
 }
 
-
 // --- Page Navigation ---
 function showPage(pageId) {
     document.querySelectorAll('.login-container, .dashboard').forEach(page => {
@@ -154,7 +182,6 @@ function showPage(pageId) {
     }
 }
 
-// ✅ --- New Function: showView (Fixes “showView is not defined”) ---
 function showView(viewId) {
     document.querySelectorAll('#studentDashboard .view').forEach(view => {
         view.classList.remove('active');
@@ -178,7 +205,6 @@ function showView(viewId) {
     currentView = viewId;
 }
 
-
 // --- Student Dashboard ---
 async function updateStudentInfo() {
     if (!currentUser) return;
@@ -189,8 +215,11 @@ async function updateStudentInfo() {
     const profileIdEl = document.getElementById('profileId');
     const totalPointsEl = document.getElementById('totalPoints');
     
-    if (studentNameEl) studentNameEl.textContent = currentUser.name || currentUser.email; 
-    if (profileNameEl) profileNameEl.textContent = currentUser.name || currentUser.email; 
+    // ✅ Use actual user data from backend
+    const displayName = currentUser.name || currentUser.username || currentUser.email.split('@')[0];
+    
+    if (studentNameEl) studentNameEl.textContent = displayName;
+    if (profileNameEl) profileNameEl.textContent = displayName;
     if (profileEmailEl) profileEmailEl.textContent = currentUser.email;
     if (profileIdEl) profileIdEl.textContent = `ID: ${currentUser.id}`; 
     
@@ -203,43 +232,69 @@ async function updateStudentInfo() {
 async function fetchStudentDashboardData() {
     console.log("Fetching student dashboard data (menus and attendance)...");
     const today = new Date().toISOString().split('T')[0];
-    todaysMenus = {}; 
-    mealStatuses = {}; 
+    todaysMenus = {};
+    mealStatuses = {};
 
     try {
         const menuResponse = await apiFetch(`/menus/?meal_date=${today}`);
         if (!menuResponse.ok) throw new Error("Failed to fetch today's menus.");
         const menusToday = await menuResponse.json();
 
+        // Debug: Print ALL menu types returned from backend
         menusToday.forEach(menu => {
-            const mealTypeLower = menu.meal_type.toLowerCase();
-            if (!['breakfast', 'lunch', 'dinner'].includes(mealTypeLower)) return; 
-            todaysMenus[mealTypeLower] = menu.id; 
+            console.log("Returned menu type (raw):", menu.meal_type);
+        });
 
-            const mealSection = document.getElementById(mealTypeLower);
+        // Normalize and map menus for accurate matching
+        menusToday.forEach(menu => {
+            if (!menu.meal_type) return; // Defensive: skip if missing type
+            const mealTypeKey = menu.meal_type.trim().toLowerCase();
+            if (!['breakfast', 'lunch', 'dinner'].includes(mealTypeKey)) return;
+            todaysMenus[mealTypeKey] = menu.id;
+
+            // UI update: show meal name if DOM present
+            const mealSection = document.getElementById(mealTypeKey);
             if (mealSection) {
-                const dishName = menu.items && menu.items.length > 0 ? menu.items[0].name : "Not Available";
+                const dishName = (menu.items && menu.items.length > 0) ? menu.items[0].name : "Not Available";
                 const dishEl = mealSection.querySelector('.meal-name');
                 if (dishEl) dishEl.textContent = dishName;
             }
         });
 
-        const attendanceResponse = await apiFetch(`/attendance/?menu__meal_date=${today}`); 
+        // Debug: log constructed menu map
+        console.log("todaysMenus mapping:", todaysMenus);
+
+        // Fetch attendance for today
+        const attendanceResponse = await apiFetch(`/attendance/?menu__meal_date=${today}`);
         if (!attendanceResponse.ok) throw new Error("Failed to fetch attendance.");
         const attendanceToday = await attendanceResponse.json();
 
+        // Default: assume attending, unless attendance marks as skipped
         ['breakfast', 'lunch', 'dinner'].forEach(mt => {
-            mealStatuses[mt] = { status: 'attending', attendance_id: null, menu_id: todaysMenus[mt] || null };
+            mealStatuses[mt] = {
+                status: 'attending',
+                attendance_id: null,
+                menu_id: todaysMenus[mt] || null
+            };
         });
-       
+
+        // For each attendance, switch to skipped if found
         attendanceToday.forEach(att => {
-            const mealType = Object.keys(todaysMenus).find(key => todaysMenus[key] === att.menu);
-            if (mealType && att.id !== undefined) {
-                mealStatuses[mealType] = { status: 'skipped', attendance_id: att.id, menu_id: att.menu };
+            // Defensive: backend may send null or string
+            const matchingMeal = Object.keys(todaysMenus).find(key => String(todaysMenus[key]) === String(att.menu));
+            if (matchingMeal && att.id !== undefined) {
+                mealStatuses[matchingMeal] = {
+                    status: 'skipped',
+                    attendance_id: att.id,
+                    menu_id: att.menu
+                };
             }
         });
 
-        updateMealDisplays(); 
+        // Debug: see resulting meal status mapping
+        console.log("mealStatuses mapping:", mealStatuses);
+
+        updateMealDisplays();
 
     } catch (error) {
         console.error("Error fetching student dashboard data:", error);
@@ -247,12 +302,11 @@ async function fetchStudentDashboardData() {
         ['breakfast', 'lunch', 'dinner'].forEach(mt => {
             mealStatuses[mt] = { status: 'error', attendance_id: null, menu_id: null };
         });
-        updateMealDisplays(); 
+        updateMealDisplays();
     }
 }
 
 
-// ✅ --- Updated Skip/Attend Button Function ---
 async function toggleMealStatus(mealType) {
     const mealInfo = mealStatuses[mealType];
     if (!mealInfo || mealInfo.menu_id === null) { 
@@ -266,6 +320,8 @@ async function toggleMealStatus(mealType) {
     const menuId = mealInfo.menu_id;
     const attendanceId = mealInfo.attendance_id;
     
+    console.log(`Toggle ${mealType}: ${currentStatus} -> ${newStatus}, Attendance ID: ${attendanceId}`);
+    
     showConfirmModal(
         `Confirm ${action} meal`,
         `Are you sure you want to ${action} ${mealType}?`,
@@ -277,32 +333,60 @@ async function toggleMealStatus(mealType) {
                 updateMealDisplays(); 
 
                 if (newStatus === 'skipped') {
-                    const response = await apiFetch(`/attendance/`, {
+                    // Skip the meal - CREATE attendance record
+                    console.log(`Skipping ${mealType} for menu ID: ${menuId}`);
+                    
+                    const response = await apiFetch(`/skip-meal/`, {
                         method: 'POST',
-                        body: JSON.stringify({ menu: menuId })
+                        body: JSON.stringify({ 
+                            meal_date: new Date().toISOString().split('T')[0],
+                            meal_type: mealType 
+                        })
                     });
+                    
                     if (!response.ok) {
                         const errorData = await response.json();
-                        throw new Error(errorData.detail || JSON.stringify(errorData));
+                        throw new Error(errorData.error || errorData.detail || 'Failed to skip meal');
                     }
-                    const newAttendance = await response.json();
-                    mealStatuses[mealType].attendance_id = newAttendance.id;
+                    
+                    const result = await response.json();
+                    mealStatuses[mealType].attendance_id = result.attendance_id || null;
+                    console.log(`Skip successful, new attendance ID: ${result.attendance_id}`);
+                    showNotification(result.message || `${mealType} marked as skipped`, 'success');
 
                 } else {
-                    if (!attendanceId) throw new Error("No attendance record found.");
+                    // Attend the meal - DELETE attendance record
+                    console.log(`Attending ${mealType}, deleting attendance ID: ${attendanceId}`);
+                    
+                    if (!attendanceId) {
+                        console.log('No attendance ID found, already attending');
+                        showNotification(`Already marked as attending`, 'info');
+                        mealStatuses[mealType].status = 'attending';
+                        mealStatuses[mealType].attendance_id = null;
+                        updateMealDisplays();
+                        return;
+                    }
+                    
                     const response = await apiFetch(`/attendance/${attendanceId}/`, {
                         method: 'DELETE'
                     });
-                    if (response.status !== 204) {
-                        let errorData = { detail: `Failed with status ${response.status}` };
-                        try { errorData = await response.json(); } catch(e){}
-                        throw new Error(errorData.detail || 'Failed to update attendance.');
+                    
+                    console.log(`Delete response status: ${response.status}`);
+                    
+                    if (response.status === 204 || response.status === 200) {
+                        mealStatuses[mealType].attendance_id = null;
+                        console.log('Attend successful');
+                        showNotification(`${mealType} marked as attending`, 'success');
+                    } else {
+                        const errorText = await response.text();
+                        console.error('Delete failed:', errorText);
+                        throw new Error('Failed to mark as attending');
                     }
-                    mealStatuses[mealType].attendance_id = null;
                 }
 
+                // Refresh dashboard data
+                console.log('Refreshing dashboard data...');
                 await fetchStudentDashboardData();
-                showNotification(`${mealType.charAt(0).toUpperCase() + mealType.slice(1)} marked as ${newStatus}!`, 'success');
 
             } catch (error) {
                 console.error('Toggle meal status error:', error);
@@ -528,52 +612,45 @@ function showNotifications() {
 // --- Manager Dashboard Functions (Backend Connected) ---
 
 async function showManagerView(viewId) {
-    console.log('Showing manager view:', viewId);
-    
-    // Update sidebar navigation
-    document.querySelectorAll('.sidebar .nav-item').forEach(item => {
-        item.classList.remove('active');
-    });
-    
-    const navItems = document.querySelectorAll('.sidebar .nav-item');
-    navItems.forEach(item => {
-        const onclick = item.getAttribute('onclick');
-        if (onclick && onclick.includes(viewId)) {
-            item.classList.add('active');
-        }
-    });
-    
-    // Show the requested view
-    document.querySelectorAll('#managerDashboard .view').forEach(view => {
-        view.classList.remove('active');
-    });
-    
-    const targetViewId = viewId === 'dashboard' ? 'managerDashboardView' : `${viewId}View`;
-    const targetView = document.getElementById(targetViewId);
-    if (targetView) {
-        targetView.classList.add('active');
-    }
-    currentManagerView = viewId;
+    console.log('Showing manager view:', viewId);
     
-    // --- THIS IS THE NEW API-CONNECTED PART ---
-    // Fetch real data when the view is shown
+    document.querySelectorAll('.sidebar .nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    const navItems = document.querySelectorAll('.sidebar .nav-item');
+    navItems.forEach(item => {
+        const onclick = item.getAttribute('onclick');
+        if (onclick && onclick.includes(viewId)) {
+            item.classList.add('active');
+        }
+    });
+    
+    document.querySelectorAll('#managerDashboard .view').forEach(view => {
+        view.classList.remove('active');
+    });
+    
+    const targetViewId = viewId === 'dashboard' ? 'managerDashboardView' : `${viewId}View`;
+    const targetView = document.getElementById(targetViewId);
+    if (targetView) {
+        targetView.classList.add('active');
+    }
+    currentManagerView = viewId;
+    
     if (viewId === 'dashboard') {
         await updateManagerDashboard();
-        initializeCharts(); // Re-initialize charts with potentially new data
+        initializeCharts();
     }
-    // else if (viewId === 'inventory') {
-    //    await fetchInventoryData(); // You can build this next
-    // }
 }
 
 async function updateManagerDashboard() {
     console.log("Fetching real data for manager dashboard...");
     try {
-        // Use our helper function to make an authenticated call
-        const response = await apiFetch('/dashboard/summary/');
+        // ✅ FIXED: Changed from /dashboard/summary/ to /dashboard/
+        const response = await apiFetch('/dashboard/');
         if (!response.ok) {
             const errData = await response.json();
-            throw new Error(errData.msg || 'Failed to fetch dashboard data');
+            throw new Error(errData.error || 'Failed to fetch dashboard data');
         }
 
         const data = await response.json();
@@ -586,35 +663,27 @@ async function updateManagerDashboard() {
         if (headcountEl) headcountEl.textContent = data.live_data.live_headcount;
         if (headcountTotalEl) headcountTotalEl.textContent = `out of ${data.live_data.total_students}`;
         
-        // Update progress bar
         const percentage = (data.live_data.live_headcount / data.live_data.total_students) * 100;
         const progressEl = document.querySelector('.headcount-display + .progress-bar .progress');
         if (progressEl) progressEl.style.width = `${percentage}%`;
         
-        // Update savings and waste reduction
         const metricValues = document.querySelectorAll('.metric-value');
-        // This value comes directly from our backend calculation
-        if (metricValues[0]) metricValues[0].textContent = `₹${data.financials.projected_savings_today}`;
-        // This is still a placeholder, as our backend doesn't calculate it yet
-        if (metricValues[1]) metricValues[1].textContent = "18%"; // TODO: Add to API
+        if (metricValues[0]) metricValues[0].textContent = `₹${data.financials.projected_daily_savings}`;
+        if (metricValues[1]) metricValues[1].textContent = "18%";
 
-        // Update Prep Sheet with REAL AI predictions
+        // Update Prep Sheet
         const prepSheetBody = document.getElementById('prepSheetBody');
-        if (prepSheetBody) {
-            prepSheetBody.innerHTML = ''; // Clear mock data
-            if (data.ai_predictions.prep_sheet.length > 0) {
-                data.ai_predictions.prep_sheet.forEach(item => {
-                    prepSheetBody.innerHTML += `
-                        <tr>
-                            <td>${item.item}</td>
-                            <td>${item.quantity_kg.toFixed(2)} kg</td>
-                            <td>${item.item === 'Rice' ? 'Basmati Rice' : 'Paneer, Tomato, etc.'}</td>
-                        </tr>
-                    `;
-                });
-            } else {
-                prepSheetBody.innerHTML = `<tr><td colspan="3">No prep sheet available.</td></tr>`;
-            }
+        if (prepSheetBody && data.ai_predictions.prep_sheet) {
+            prepSheetBody.innerHTML = '';
+            Object.entries(data.ai_predictions.prep_sheet).forEach(([item, quantity]) => {
+                prepSheetBody.innerHTML += `
+                    <tr>
+                        <td>${item}</td>
+                        <td>${quantity} kg</td>
+                        <td>${item === 'Rice (kg)' ? 'Basmati Rice' : 'Various'}</td>
+                    </tr>
+                `;
+            });
         }
         
     } catch (error) {
@@ -901,7 +970,6 @@ function confirmAction() {
 // --- Notification System (Mock) ---
 function showNotification(message, type = 'info') {
     console.log(`Notification [${type}]: ${message}`);
-
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.style.cssText = `

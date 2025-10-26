@@ -7,9 +7,11 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY')
+# Hardcoded SECRET_KEY (no quotes issue)
+SECRET_KEY = 'hlh!f3ciykbh1-wm-br9-n-o-8f-vg6b-hvca-ea-nfm9'
 
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+# Hardcoded DEBUG
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
@@ -57,14 +59,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'annapurna_project.wsgi.application'
 
+# SQLite Database
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -81,8 +80,35 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
 
+# CORS Configuration
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5500", 
+    "http://localhost:5500",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
 ]
 
 AUTH_PASSWORD_VALIDATORS = [
