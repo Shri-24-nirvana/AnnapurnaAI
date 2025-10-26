@@ -59,6 +59,18 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'annapurna_project.wsgi.application'
 
+# PostgreSQL Database
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'annapurnadb',
+#         'USER': 'postgres',
+#         'PASSWORD': 'Ashu1565',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+
 # SQLite Database
 DATABASES = {
     'default': {
