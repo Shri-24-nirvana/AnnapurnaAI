@@ -774,7 +774,7 @@ function updateAnalyticsChart(tabId) {
     const ctx = document.getElementById('analyticsChart');
     if (!ctx) return;
 
-    if (window.analyticsChart) {
+    if (window.analyticsChart && typeof window.analyticsChart.destroy === 'function') {
         window.analyticsChart.destroy();
     }
 
@@ -848,10 +848,11 @@ function initializeCharts() {
     setTimeout(() => {
         const headcountCtx = document.getElementById('headcountChart');
         if (headcountCtx) {
-            // Destroy existing chart if it exists
-            if (window.headcountChart) {
+            // Destroy existing chart if it exists and has the destroy method
+            if (window.headcountChart && typeof window.headcountChart.destroy === 'function') {
                 window.headcountChart.destroy();
             }
+            // Create new chart instance
             window.headcountChart = new Chart(headcountCtx, {
                 type: 'line',
                 data: {
@@ -895,7 +896,7 @@ function initializeCharts() {
         // Rating Trends Chart
         const ratingTrendsCtx = document.getElementById('ratingTrendsChart');
         if (ratingTrendsCtx) {
-            if (window.ratingTrendsChart) {
+            if (window.ratingTrendsChart && typeof window.ratingTrendsChart.destroy === 'function') {
                 window.ratingTrendsChart.destroy();
             }
             window.ratingTrendsChart = new Chart(ratingTrendsCtx, {
@@ -932,6 +933,7 @@ function initializeCharts() {
 
         // Initialize analytics chart
         updateAnalyticsChart('feedback');
+
     }, 100);
 }
 

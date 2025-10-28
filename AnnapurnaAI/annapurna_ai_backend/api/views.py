@@ -13,6 +13,25 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+class MenuListView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        meal_date = request.query_params.get('meal_date')
+        
+        if meal_date:
+            try:
+                date_obj = datetime.datetime.strptime(meal_date, '%Y-%m-%d').date()
+                menus = Menu.objects.filter(meal_date=date_obj)
+            except ValueError:
+                return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            menus = Menu.objects.all()
+        
+        serializer = MenuSerializer(menus, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class SkipMealView(APIView):
     permission_classes = [IsAuthenticated]
     
@@ -107,7 +126,11 @@ class DashboardSummaryView(APIView):
         )
         
         cost_per_meal = 50
-        projected_savings = (total_students - ai_forecast['predicted_headcount']) * cost_per_meal
+        projected_savings = max(
+        0, 
+        (total_students - ai_forecast['predicted_headcount']) * cost_per_meal
+        )
+
 
         summary = {
             "meal_details": {
